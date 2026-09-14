@@ -1,4 +1,6 @@
-const Notification = () => {
+const Notification = ({ message }) => {
+  if (!message) return
+
   const style = {
     border: "solid",
     padding: 10,
@@ -8,7 +10,7 @@ const Notification = () => {
 
   return (
     <div style={style} data-testid="notification">
-      render here notification...
+      {message}
     </div>
   )
 }

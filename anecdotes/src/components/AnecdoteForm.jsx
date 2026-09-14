@@ -1,12 +1,13 @@
-import { useAnecdoteActions, getId } from "../store";
+import { useAnecdoteActions } from "../store";
 
 const AnecdoteForm = () => {
-  const { setNewAnecdote } = useAnecdoteActions();
+  const { addAnecdote, setMessage } = useAnecdoteActions();
 
   const createAnecdotes = (e) => {
     e.preventDefault();
     const content = e.target.anecdote.value;
-    setNewAnecdote({ content, id: getId(), votes: 0 });
+    addAnecdote(content)
+    setMessage(`New Anecdote '${content}' Added`)
     e.target.reset();
   };
 

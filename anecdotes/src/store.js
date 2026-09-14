@@ -1,40 +1,55 @@
 import { create } from "zustand";
+import anecdoteService from "./services/anecdotes";
 
-const anecdotesAtStart = [
-  "If it hurts, do it more often",
-  "Adding manpower to a late software project makes it later!",
-  "The first 90 percent of the code accounts for the first 90 percent of the development time...The remaining 10 percent of the code accounts for the other 90 percent of the development time.",
-  "Any fool can write code that a computer can understand. Good programmers write code that humans can understand.",
-  "Premature optimization is the root of all evil.",
-  "Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.",
-];
-
-const getId = () => (100000 * Math.random()).toFixed(0);
-
-const asObject = (anecdote) => ({
-  content: anecdote,
-  id: getId(),
-  votes: 0,
-});
-
-const useAnecdoteStore = create((set) => ({
-  anecdotes: anecdotesAtStart.map(asObject),
+const useAnecdoteStore = create((set, get) => ({
+  anecdotes: [],
   filter: "",
+  message: "",
   actions: {
-    setVote: (id) =>
+    initialize: async () => {
+      const anecdotes = await anecdoteService.getAll();
+      set({ anecdotes });
+    },
+    vote: async (id) => {
+      const anecdote = get().anecdotes.find((an) => an.id === id);
+      if (!anecdote) return;
+      const updatedAnecdote = await anecdoteService.update(id, {
+        ...anecdote,
+        votes: anecdote.votes + 1,
+      });
       set((state) => ({
         anecdotes: state.anecdotes.map((an) =>
-          an.id === id ? { ...an, votes: an.votes + 1 } : an,
+          an.id === id ? updatedAnecdote : an,
         ),
-      })),
-    setNewAnecdote: (anecdote) =>
-      set((state) => ({ anecdotes: state.anecdotes.concat(anecdote) })),
+      }));
+      get().actions.setMessage(`you voted '${anecdote.content}'`);
+    },
+    addAnecdote: async (content) => {
+      const newAnecdote = await anecdoteService.create({ content, votes: 0 });
+      set((state) => ({ anecdotes: state.anecdotes.concat(newAnecdote) }));
+    },
     setFilter: (filter) => set({ filter }),
+    setMessage: (message) => {
+      set({ message });
+      setTimeout(() => {
+        set({ message: "" });
+      }, 5000);
+    },
+    removeAnecdote: async (id) => {
+      const anecdote = get().anecdotes.find((an) => an.id === id);
+      if (anecdote && anecdote.votes === 0) {
+        await anecdoteService.remove(id);
+        set((state) => ({
+          anecdotes: state.anecdotes.filter((an) => an.id !== id),
+        }));
+        get().actions.setMessage(``)
+      }
+    },
   },
 }));
 
 export const useAnecdotes = () => useAnecdoteStore((state) => state.anecdotes);
 export const useFilter = () => useAnecdoteStore((state) => state.filter);
-export const useAnecdoteActions = () => useAnecdoteStore((state) => state.actions);
-
-export { getId };
+export const useMessage = () => useAnecdoteStore((state) => state.message);
+export const useAnecdoteActions = () =>
+  useAnecdoteStore((state) => state.actions);
